@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b5d4b">
-<title>Online Store — Smart Products, Better Living</title>
+<title>CleanCart — Smart Products, Better Living</title>
 <meta name="description" content="Trending products, everyday essentials and clever finds, delivered to your door.">
-<meta property="og:title" content="Online Store"><meta property="og:type" content="website">
+<meta property="og:title" content="CleanCart"><meta property="og:type" content="website">
 <meta property="og:description" content="Trending products, everyday essentials and clever finds.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -133,7 +133,7 @@ table select{min-height:42px;padding:0 8px;border-radius:10px;border:1px solid v
 
 <script>
 /* =====================================================================
-   ONLINE STORE — HOW TO EDIT (no coding needed, just change the values)
+   CLEANCART — HOW TO EDIT (no coding needed, just change the values)
    1) CONFIG below    → store name, logo, WhatsApp, payments, shipping,
                         currencies, countries, banners, deal timer, coupons
    2) CATEGORIES      → add/remove categories (one line each)
@@ -145,9 +145,9 @@ table select{min-height:42px;padding:0 8px;border-radius:10px;border:1px solid v
    For a live store, copy final data into this file or connect a backend.
    ===================================================================== */
 const CONFIG = {
-  storeName: "Online Store",
+  storeName: "CleanCart",
   description: "Trending products, everyday essentials and clever finds delivered to your door.",
-  logoText: "Online Store",                 // or set logoImage: "images/logo.png"
+  logoText: "CleanCart",                 // or set logoImage: "images/logo.png"
   logoImage: "",
   whatsapp: "966500000000",              // digits only, with country code
   adminPassword: "admin123",             // CHANGE THIS (client-side only, demo level)
@@ -510,10 +510,22 @@ async function processPayment(method,order){/* e.g. Stripe/PayPal SDK call using
 async function placeOrder(d){const t=totals(d.ship),pm=C().payments[d.pay];if(!pm)return toast("Choose a payment method");const id=Math.floor(100000+Math.random()*900000);
  const o={id,date:Date.now(),name:d.name,email:d.email,phone:d.phone,addr:[d.address,d.city,d.zip,d.country].join(", "),pay:d.pay,payLabel:pm.label,total:money(t.total),usd:t.total,items:t.items.map(i=>({name:i.p.name,q:i.q})),country:d.country,ship:d.ship,step:0};
  if(!(await processPayment(d.pay,o)))return toast("Payment failed");
- if(!SHIPSEL)trackEvent("shipping_selected",{cid:CID,m:d.ship});if(!PAYSEL)trackEvent("payment_selected",{cid:CID,m:d.pay});trackEvent("order_completed",{cid:CID,oid:id,v:t.total,pay:d.pay,ship:d.ship,items:t.items.map(i=>({id:i.p.id,q:i.q,p:i.p.sale}))});CID=null;S.orders.unshift(o);S.cart=[];S.coupon=null;if(!S.user)S.user={name:d.name,email:d.email,address:d.address};save();badges();
+ if(!SHIPSEL)trackEvent("shipping_selected",{cid:CID,m:d.ship});if(!PAYSEL)trackEvent("payment_selected",{cid:CID,m:d.pay});trackEvent("order_completed",{cid:CID,oid:id,v:t.total,pay:d.pay,ship:d.ship,items:t.items.map(i=>({id:i.p.id,q:i.q,p:i.p.sale}))});CID=null;sbPost("orders",{customer_name:o.name,phone:o.phone,address:o.addr,items:o.items,total:o.usd,status:"new"});S.orders.unshift(o);S.cart=[];S.coupon=null;if(!S.user)S.user={name:d.name,email:d.email,address:d.address};save();badges();
  if(d.pay=="whatsapp")window.open(`https://wa.me/${wa()}?text=`+encodeURIComponent(`New order #${id}\n${o.items.map(i=>i.name+" x"+i.q).join("\n")}\nTotal: ${o.total}\n${o.name}, ${o.phone}\n${o.addr}`),"_blank");
  location.hash="#/thanks/"+id}
-chrome();route();
+/* ===== Supabase: store name + products from admin, visits, orders ===== */
+const SB_URL="https://lfbwswsnaiwmjqakolyr.supabase.co",SB_KEY="sb_publishable_lKu2uyYFQTKwpJ6uyb2SXw_O_iBZA1F";
+const sbGet=p=>fetch(SB_URL+"/rest/v1/"+p,{headers:{apikey:SB_KEY}}).then(r=>r.json());
+const sbPost=(tb,b)=>fetch(SB_URL+"/rest/v1/"+tb,{method:"POST",headers:{apikey:SB_KEY,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(b)}).catch(()=>{});
+async function sbLoad(){try{
+ const [s,p]=await Promise.race([Promise.all([sbGet("settings?id=eq.1&select=*"),sbGet("products?active=eq.true&select=*&order=created_at.desc")]),new Promise((_,r)=>setTimeout(r,4000))]);
+ const st=Array.isArray(s)&&s[0];if(st){if(st.store_name){D.config.storeName=st.store_name;D.config.logoText=st.store_name;D.config.logoImage=""}if(st.tagline)D.config.description=st.tagline}
+ if(Array.isArray(p)&&p.length){const cat=(D.categories[0]||["trending"])[0];D.products=p.map((x,i)=>({id:Number(x.id),name:x.name,slug:(String(x.name).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"item")+"-"+x.id,cat,sku:"P-"+x.id,price:+x.price,sale:+x.price,stock:100,short:String(x.description||"").slice(0,90),desc:x.description||"",images:[x.image||"ph:📦:#0b5d4b"],tags:[],featured:i<8?1:0,bestseller:0,trending:1,rating:4.5,reviews:0}))}
+}catch(e){}}
+try{let v=localStorage.getItem("sb_vid");if(!v){v=Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem("sb_vid",v)}
+ let ref="direct";try{if(document.referrer)ref=new URL(document.referrer).hostname}catch(e){}
+ if(ref!==location.hostname)sbPost("visits",{vid:v,page:location.pathname,referrer:ref,device:/Mobi|Android/i.test(navigator.userAgent)?"mobile":"desktop"})}catch(e){}
+sbLoad().then(()=>{chrome();route()});
 </script>
 </body>
 </html>
