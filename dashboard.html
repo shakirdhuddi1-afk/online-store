@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>Dashboard</title>
+<style>
+:root{--ink:#10201c;--mut:#5d6b66;--bg:#f3f5f4;--card:#fff;--line:#dfe5e2;--pri:#0b5d4b;--red:#b3261e}
+@media(prefers-color-scheme:dark){:root{--ink:#e8f0ed;--mut:#9aaba5;--bg:#0f1a17;--card:#17251f;--line:#2a3b35;--pri:#2fb894;--red:#ff8a80}}
+*{box-sizing:border-box;margin:0}body{font:16px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--ink);padding:16px;max-width:760px;margin:0 auto}
+h1{font-size:22px;margin:8px 0}h2{font-size:17px;margin-bottom:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.k{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}.k b{font-size:26px;display:block}.k span{color:var(--mut);font-size:13px}
+button,select{font:inherit;border-radius:8px;padding:8px 12px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+button.p{background:var(--pri);color:#fff;border:0;font-weight:600}
+input{font:inherit;width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:inherit;margin-bottom:8px}
+.o{border-top:1px solid var(--line);padding:12px 0}.o:first-child{border-top:0}.o small{color:var(--mut);display:block}
+.bar{display:flex;gap:8px;align-items:center;margin:4px 0}.bar i{display:block;height:8px;background:var(--pri);border-radius:4px}
+.hide{display:none!important}a{color:var(--pri)}
+</style></head><body>
+<h1>Dashboard</h1>
+<div id="login" class="card hide"><h2>Sign in</h2>
+<input id="em" type="email" placeholder="Email" autocomplete="username"><input id="pw" type="password" placeholder="Password" autocomplete="current-password">
+<button class="p" id="go">Sign in</button></div>
+<div id="app" class="hide">
+<p><a href="admin.html">Edit products and store name</a> &nbsp; <button id="rf">Refresh</button></p><br>
+<div class="grid">
+<div class="k"><b id="v1">0</b><span>Visitors today</span></div>
+<div class="k"><b id="v7">0</b><span>Visitors, 7 days</span></div>
+<div class="k"><b id="o1">0</b><span>Orders today</span></div>
+<div class="k"><b id="o7">0</b><span>Orders, 7 days</span></div>
+<div class="k"><b id="rev">0</b><span>Sales, 30 days</span></div>
+<div class="k"><b id="nw">0</b><span>New orders to ship</span></div></div>
+<div class="card"><h2>Where visitors come from (30 days)</h2><div id="src"></div></div>
+<div class="card"><h2>Orders</h2><div id="ol"></div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL="https://lfbwswsnaiwmjqakolyr.supabase.co",SUPABASE_KEY="sb_publishable_lKu2uyYFQTKwpJ6uyb2SXw_O_iBZA1F";
+const $=i=>document.getElementById(i),esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+if(SUPABASE_URL.startsWith("PASTE")){$("login").classList.remove("hide");$("login").innerHTML="<h2>Setup needed</h2><p>Put your Supabase URL and key in dashboard.html.</p>"}
+else{
+const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const show=on=>{$("login").classList.toggle("hide",on);$("app").classList.toggle("hide",!on);if(on)load()};
+db.auth.getSession().then(r=>show(!!r.data.session));
+$("go").onclick=async()=>{const r=await db.auth.signInWithPassword({email:$("em").value.trim(),password:$("pw").value});if(r.error)alert("Sign in failed: "+r.error.message);else show(true)};
+$("rf").onclick=load;
+async function load(){
+ const d30=new Date(Date.now()-30*864e5).toISOString(),d7=Date.now()-7*864e5,t0=new Date();t0.setHours(0,0,0,0);
+ const [v,o]=await Promise.all([db.from("visits").select("vid,referrer,created_at").gte("created_at",d30).limit(20000),db.from("orders").select("*").order("created_at",{ascending:false}).limit(200)]);
+ if(v.error||o.error){alert("Run setup-dashboard.sql first: "+(v.error||o.error).message);return}
+ const uniq=(a)=>new Set(a.map(x=>x.vid)).size,T=x=>new Date(x.created_at).getTime();
+ $("v1").textContent=uniq(v.data.filter(x=>T(x)>=t0));$("v7").textContent=uniq(v.data.filter(x=>T(x)>=d7));
+ $("o1").textContent=o.data.filter(x=>T(x)>=t0).length;$("o7").textContent=o.data.filter(x=>T(x)>=d7).length;
+ $("rev").textContent=o.data.filter(x=>T(x)>=new Date(d30)).reduce((a,x)=>a+Number(x.total||0),0).toLocaleString();
+ $("nw").textContent=o.data.filter(x=>x.status==="new").length;
+ const m={};v.data.forEach(x=>m[x.referrer||"direct"]=(m[x.referrer||"direct"]||0)+1);
+ const e=Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,6),mx=e.length?e[0][1]:1;
+ $("src").innerHTML=e.length?e.map(([k,n])=>`<div class="bar"><span style="width:120px;overflow:hidden;text-overflow:ellipsis">${esc(k)}</span><i style="width:${Math.max(4,n/mx*100)}px"></i><span>${n}</span></div>`).join(""):"<small>No visits yet. Visits appear after your site loads store-loader.js.</small>";
+ $("ol").innerHTML=o.data.length?o.data.map(x=>`<div class="o"><b>${esc(x.customer_name)}</b> - ${esc(x.total)}<small>${esc(x.phone)} | ${esc(x.address)}</small><small>${esc(JSON.stringify(x.items||""))}</small><small>${new Date(x.created_at).toLocaleString()}</small>
+ <select data-id="${x.id}">${["new","shipped","delivered","cancelled"].map(s=>`<option ${s===x.status?"selected":""}>${s}</option>`).join("")}</select></div>`).join(""):"<small>No orders yet.</small>"}
+$("ol").onchange=async e=>{if(e.target.dataset.id){const r=await db.from("orders").update({status:e.target.value}).eq("id",e.target.dataset.id);if(r.error)alert(r.error.message);else load()}};
+}
+</script></body></html>
