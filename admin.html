@@ -379,7 +379,7 @@ SEC.push({t:'Products section ka heading',p:'shop',f:[['kick','Label'],['title',
 for(let i=0;i<2;i++)SEC.push({t:'Poster '+(i+1)+' (bade photo wale)',p:'posters.'+i,f:[['label','Label'],['title','Heading'],['sub','Text'],['link','Link'],['image','Photo','img']]});
 SEC.push({t:'Niche ka bada banner',p:'banner',f:[['title','Heading'],['sub','Text'],['cta','Button text'],['link','Link'],['image','Photo','img']]});
 SEC.push({t:'Video (banner ke niche)',p:'video',f:[['title','Heading'],['sub','Text'],['url','YouTube link ya .mp4 link']]});
-for(let i=0;i<3;i++)SEC.push({t:'Promo banner '+(i+1)+' (chaudi tasveer, 1600x640)',p:'promos.'+i,f:[['image','Banner photo','img'],['link','Link (jaise #/shop?cat=fitness)'],['alt','Photo ka text (SEO)']]});
+for(let i=0;i<3;i++)SEC.push({t:'Promo banner '+(i+1)+' (chaudi tasveer, 1600x640)',p:'promos.'+i,f:[['image','Banner photo (apni product photo)','img'],['kick','Chhota upar ka text (jaise NEW ARRIVAL) - khali chhodo to text nahi aayega'],['title','Bada heading (*word* = gold). Khali chhodo to sirf photo dikhegi'],['sub','Chhota text'],['cta','Button ka naam (jaise Shop now)'],['link','Link (jaise #/shop?cat=fitness)'],['alt','Photo ka text (SEO)']]});
 SEC.push({t:'Contact aur deals',f:[['promo','Upar announcement line'],['whatsapp','WhatsApp number (923... bina +)'],['instagram','Instagram link'],['tiktok','TikTok link'],['dealOn','Deals section dikhao','cb'],['dealTitle','Deal title'],['dealText','Deal text'],['dealEnds','Deal khatam hone ka time','dt']]});
 const getP=(o,p)=>p.split('.').reduce((x,k)=>x==null?x:x[k],o);
 function setP(o,p,v){const ks=p.split('.');let x=o;ks.forEach((k,i)=>{if(i==ks.length-1){x[k]=v;return}if(x[k]==null)x[k]=/^\d+$/.test(ks[i+1])?[]:{};x=x[k]})}
