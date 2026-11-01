@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://shakirdhuddi1-afk.github.io/online-store/sitemap.xml
